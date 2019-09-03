@@ -1,0 +1,365 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="utf-8">
+	<title>xProduktai, teisingas</title>
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+		<style>
+			.anuliuotas, .sanuliuotas {
+				background-color: lightblue;
+			}
+			.redaguoti, .sredaguoti {
+				background-color: lightgreen;
+			}
+			
+			/*
+				jquery ui stiliai
+			*/
+			label, input { display:block; }
+			input.text { margin-bottom:12px; width:95%; padding: .4em; }
+			fieldset { padding:0; border:0; margin-top:25px; }
+			h1 { font-size: 1.2em; margin: .6em 0; }
+			div#users-contain { width: 350px; margin: 20px 0; }
+			div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+			div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+			.ui-dialog .ui-state-error { padding: .3em; }
+			.validateTips { border: 1px solid transparent; padding: 0.3em; }	
+		</style>
+	<script
+		src="https://code.jquery.com/jquery-3.4.1.min.js"
+		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+		crossorigin="anonymous">
+	</script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>	
+	<script>
+		$(document).ready ( function() {
+		
+			var produktai_id, dialog, form, produktai;
+			
+			pav = $( "#pav" );
+			mat_vnt = $( "#mat_vnt" );
+			mat_kiek = $( "#mat_kiek" );
+			kaina = $( "#kaina" );
+			kiekis_sand = $( "#kiekis_sand" );
+			allFields = $( [] ).add( pav ).add( mat_vnt ).add( mat_kiek ).add( kaina ).add( kiekis_sand );
+	
+		$.ajax({
+		  url: "validators.js",
+		  dataType: "script",
+		  // success: success
+		});
+			
+		function surastiSarasePagalId ( id, sarasas ) {
+		
+			found = -1;
+	
+			for ( i = 0; i < sarasas.length; i++) {	
+			
+				if ( id == sarasas [ i ].id ) {
+				
+					found = i;
+				}
+			}
+			return found;
+		}		
+		
+		pasiimtiProduktus();
+	
+		
+		function pasiimtiProduktus (){
+		
+			$.ajax(
+				{
+					url: "http://localhost:8080/restfull/lst-produktai "  
+															
+				}
+
+			)
+			
+			.done(
+					function( data ) {
+					
+						produktai = data;
+															// alert ( 'jquery ok ' + data );
+						res_str = '<table>'
+								+'<tr>'
+									+ '<th>id</th>'
+									+ '<th>pav</th>'
+									+'<th>mato<br>vnt.</th>'
+									+'<th>kiek</th>'
+									+'<th>kaina</th>'
+									+'<th>kiekis_sand</th>'
+									+'<th>veiksmai</th>'
+									+ '<th><input type="button" class="ivesti" value="naujas" id="naujas"></th>'
+									+'</tr>';
+						
+						for ( i = 0; i < data.length; i++) {
+						
+							res_str += '<tr class="s' + '" data-id="' + data [ i ].id  +'" >'
+								+ '<td>' + data [ i ].id + '</td>' 
+								+ '<td>' + data [ i ].pav + '</td>'
+								+ '<td>' + data [ i ].mat_vnt + '</td>'
+								+ '<td>' + data [ i ].mat_kiek + '</td>'
+								+ '<td>' + data [ i ].kaina + '</td>'
+								+ '<td>' + data [ i ].kiekis_sand + '</td>'
+								+ '<td><input type="button" class="anuliuotas" value="šalinti"></td>'
+								+ '<td><input type="button" class="redaguoti" value="redaguoti"></td>'
+								;
+						
+							res_str += '</tr>';
+						}
+						
+						res_str += '</table>'
+						$( '#produktai' ).html ( res_str );
+						
+						
+						$( "#naujas" ).button().on( "click", function() {
+						      $( '#id_prod' ).val(  '0' );
+						      dialog.dialog( "open" );
+						});	
+						
+						$( '.anuliuotas' ).on ( 'click', function() {
+						
+							$( this ).each ( function() {
+								
+								produktai_id = $( this ).parent( ).parent().data ( 'id' );
+
+								salintiProduktus ( produktai_id);
+								//keistiIrasa (id_produkto, 'anuliuotas');
+								dialogRemove.dialog ("open")
+							});
+						});
+						
+						$( '.redaguoti' ).on ( 'click', function() {
+						
+							$( this ).each ( function() {
+								
+								id_produkto = $( this ).parent( ).parent().data ( 'id' );
+								
+								i_produkto = surastiSarasePagalId ( id_produkto, produktai );
+								
+								$( '#pav' ).val ( produktai [ i_produkto ].pav );
+								$( '#mat_vnt' ).val ( produktai [ i_produkto ].mat_vnt );
+								$( '#mat_kiek' ).val ( produktai [ i_produkto ].mat_kiek );
+								$( '#kaina' ).val ( produktai [ i_produkto ].kaina );
+								$( '#kiekis_sand' ).val ( produktai [ i_produkto ].kiekis_sand );
+
+								$( '#id_prod' ).val ( id_produkto );
+								dialog.dialog( "open" );
+
+								//keistiBusena ( id_produkto, 'redaguoti' );
+							});
+						});
+					}
+			);		
+		}
+		
+		
+		
+				function salintiProduktus( id ) {
+		
+					params_str = 'id=' + id ;
+					//alert (params_str );
+		
+					$.ajax(
+						{
+					url: "http://localhost:8080/restfull/salintiProduktus?" + params_str
+			
+															
+						}
+				)
+			
+					.done(function (data) {
+			
+					//alert ( data );
+					pasiimtiProduktus();
+			
+				});
+			
+			
+		}	
+	
+				$( '#naujas_produktas' ).click( function() {
+		
+					alert ( 'pridedamas ' );
+		
+					produktas = {
+			
+					pav:  $( '#pav' ).val().trim()
+					,mat_vnt: $( '#mat_vnt' ).val().trim()
+					,mat_kiek: parseInt ( $( '#mat_kiek' ).val() )
+					,kaina: parseFloat ( $( '#kaina' ).val() )
+					,kiekis_sand: parseFloat ( $( '#kiekis_sand' ).val() )
+					//pav: $( '#pav' ).val()
+					//, trukme_ruosimo: parseInt ( $( '#trukme_ruosimo' ).val() )
+					//, trukme_kaitinimo: parseInt ( $( '#trukme_kaitinimo' ).val() )
+				}
+				
+				
+				params_str = 
+					"pav="  + produktas.pav 
+					+ '&mat_vnt=' + produktas.mat_vnt
+					+ '&mat_kiek=' + produktas.mat_kiek
+					+ '&kaina=' + produktas.kaina 
+					+ '&kiekis_sand=' + produktas.kiekis_sand 
+			
+				
+				alert ( "http://localhost:8080/restfull/add?" + params_str );
+					
+				$.ajax(
+					{
+						url: "http://localhost:8080/restfull/add?" + params_str
+					}
+				)
+				.done( function( data ) {
+					
+					alert ( data );
+					pasiimtiProduktus();
+				});
+			});
+		
+				function addProduktas() {
+		
+															// alert ( 'jquery ok ' + data 
+															/*
+																id
+																pav
+																mat_vnt
+																mato_kiekis
+																kaina
+																kiekis_sand
+															*/		
+		
+			var valid = true;
+			allFields.removeClass( "ui-state-error" );
+		 
+			valid = valid && checkLength( pav, "Pavadinimas", 3, 256 );
+		          valid = valid && checkLength( mat_vnt, "Mato vnt.", 1, 32 );
+		          valid = valid && checkNumber( mat_kiek, "Mato kiekis", "realus" );
+		          valid = valid && checkNumber( kaina, "Kaina", "realus" );
+		          valid = valid && checkNumber( kiekis_sand, "Kiekis sand.", "realus" );	
+			id  = $( '#id_prod' ).val();
+			 issaugotiProdukta( id );
+			 
+			return valid;
+		    }
+
+				function issaugotiProdukta( id ) {
+		
+					params_str = 
+						'id=' + id 
+						+ '&pav=' + pav.val()				
+						+ '&mat_vnt=' + mat_vnt.val()
+						+ '&mat_kiek=' + mat_kiek.val()				
+						+ '&kaina=' + kaina.val()
+						+ '&kiekis_sand=' + kiekis_sand.val()
+					;  
+				
+		
+					$.ajax(
+						{
+							url: "http://localhost:8080/restfull/saugoti-produkta?" + params_str
+						}
+					)
+					.done( function( data ) {
+						
+						alert ( data );
+						dialog.dialog ( 'close' );
+						pasiimtiProduktus();
+					});			
+				
+				}
+				
+					dialog = $( "#dialog-form" ).dialog({
+					      autoOpen: false,
+					      height: 550,
+					      width: 350,
+					      modal: true,
+					      buttons: {
+						"Pridėti": addProduktas,
+						"Atšaukti": function() {
+						
+							dialog.dialog( "close" );
+						}
+					      },
+					      close: function() {
+						form[ 0 ].reset();
+						allFields.removeClass( "ui-state-error" );
+					      }
+					});
+		 
+		
+	
+		
+		
+	
+					dialogRemove = $( "#dialog-confirm" ).dialog({
+						      autoOpen: false,
+						      height: "auto",
+						      width: 400,
+						      modal: true,
+						      buttons: {
+								"Šalinti": function() {
+									salintiProduktus (produktai_id);
+									$( this ).dialog( "close" );
+								},
+								Atšaukti: function() {
+									$( this ).dialog( "close" );
+									}
+						      }
+						
+					} ); 
+
+					form = dialog.find( 'form' );
+
+	}); 
+	    </script>
+</head>
+<body>
+	<!-- cia ta dalis kur pridedam produktus be jquery UI
+	<form action="">
+		pavadinimas<br>
+		<input type="text" id="pav" value=""><br><br>
+		mat_vnt<br>
+		<input type="text" id="mat_vnt" value=""><br><br>
+		mat_kiek<br>
+		<input type="text" id="mat_kiek" value=""><br><br>
+		kaina<br>
+		<input type="text" id="kaina" value=""><br><br>
+		kiekis_sand<br>
+		<input type="text" id="kiekis_sand" value=""><br><br>
+		
+		<input type="button" id="naujas_produktas" value="pridėti produktą">
+	</form>
+	-->
+<div id="dialog-form" title="Produktas">
+  <p class="validateTips">Visi laukeliai turi būti užpildyti.</p>
+ <form id= "df" action="">
+	<fieldset>
+		<label for="pav">Pavadinimas</label>
+		<input type="text" name="pav" id="pav" value="" class="text ui-widget-content ui-corner-all">
+		<label for="mat_vnt">Mato vnt</label>
+		<input type="text" name="mat_vnt" id="mat_vnt" value="" class="text ui-widget-content ui-corner-all">
+		<label for="mat_kiek">Mato kiekis</label>
+		<input type="text" name="mat_kiek" id="mat_kiek" value="" class="text ui-widget-content ui-corner-all">
+		<label for="kaina">Kaina</label>
+		<input type="text" name="kaina" id="kaina" value="" class="text ui-widget-content ui-corner-all">
+		<label for="kiekis_sand">Kiekis sandėlyje</label>
+		<input type="text" name="kiekis_sand" id="kiekis_sand" value="" class="text ui-widget-content ui-corner-all">
+			 
+		<!-- Allow form submission with keyboard without duplicating the dialog button -->
+		<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+	</fieldset>
+		<input type="hidden" name="id" id="id_prod" value="0">
+  </form>
+</div>
+	
+	<!-- Trynimo patvirtinimo langas -->
+	<div id="dialog-confirm" title="Ar tikrai norite ištrinti?">
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>Šie įrašai bus ištrinti, be galimybės juos atstatyti. Ar tikrai norite šalinti įrašą?</p>
+</div>
+		
+	<div id="produktai">
+	</div>
+</body>
+</html>
