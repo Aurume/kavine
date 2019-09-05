@@ -1,0 +1,358 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Patiekalų sąrašas, tikras</title>
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <meta charset="utf-8">
+		<style>
+			.anuliuotas, .sanuliuotas {
+				background-color: lightblue;
+			}
+			.redaguoti, .sredaguoti {
+				background-color: lightgreen;
+			}
+			
+			/*
+				jquery ui stiliai
+			*/
+			label, input { display:block; }
+			input.text { margin-bottom:12px; width:95%; padding: .4em; }
+			fieldset { padding:0; border:0; margin-top:25px; }
+			h1 { font-size: 1.2em; margin: .6em 0; }
+			div#users-contain { width: 350px; margin: 20px 0; }
+			div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+			div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+			.ui-dialog .ui-state-error { padding: .3em; }
+			.validateTips { border: 1px solid transparent; padding: 0.3em; }
+		</style>
+	    <script
+		src="https://code.jquery.com/jquery-3.4.1.min.js"
+		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+		crossorigin="anonymous"></script>
+		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>	
+	    <script>
+		$(document).ready ( function() {
+		
+		
+			var dialog, form, patiekalai;
+			
+			pav = $( "#pav" );
+			trukme_ruosimo = $( "#trukme_ruosimo" );
+			trukme_kaitinimo = $( "#trukme_kaitinimo" );
+			kaina = $( "#kaina" );
+			allFields = $( [] ).add( pav ).add( trukme_ruosimo ).add( trukme_kaitinimo ).add( kaina );
+	
+		$.ajax({
+		  url: "validators.js",
+		  dataType: "script",
+		  // success: success
+		});
+		
+		
+		function surastiSarasePagalId ( id, sarasas ) {
+		
+			found = -1;
+	
+			for ( i = 0; i < sarasas.length; i++) {	//netinka sitoje vietoje.
+			
+				if ( id == sarasas [ i ].id ) {
+				
+					found = i;
+				}
+			}
+			
+			return found;
+		}		
+		
+		paiimtiPatiekalus();
+		
+		
+		function paiimtiPatiekalus() {
+		
+			$.ajax(
+				{
+					url: "http://localhost:8080/restfull/lst-patiekalai" 
+													
+				}
+			)
+			.done(
+					function( data ) {
+					patiekalai = data;	
+		
+										// alert ( 'jquery ok ' + data );
+						res_str = '<table>'
+								+ '<tr>'
+									+ '<th rowspan="2">id</th>'
+									+ '<th rowspan="2">pav</th>'
+									+ '<th colspan="2">trukmė</th>'
+									+ '<th rowspan="2">kaina</th>'
+									//+ '<th rowspan="2">prod.<br>kiekis</th>'
+									+ '<th rowspan="2">veiksmai</th>'									
+									+ '<th rowspan="2"><input type="button" class="ivesti" id="naujas" value="naujas"></th>'									
+								+ '</tr>'
+								+ '<tr><th>ruošimo</th><th>kaitinimo</th></tr>';
+						
+						for ( i = 0; i < data.length; i++) {
+						
+							disabled = '';
+							
+							if ( data[ i ].uzsakymai.length > 0 ) {
+							
+								disabled = ' disabled';
+							}
+						
+						
+							res_str += '<tr class="s' + '" data-id="' + data [ i ].id  +'" >'
+								+ '<td>' + data [ i ].id + '</td>' 
+								+ '<td>' + data [ i ].pav + '</td>'
+								+ '<td>' + data [ i ].trukme_ruosimo + '</td>'
+								+ '<td>' + data [ i ].trukme_kaitinimo + '</td>'
+								+ '<td>' + data [ i ].kaina + '</td>'
+								//+ '<td>' + data [ i ].prod_kiekis + '</td>'
+								+ '<td><input type="button" class="anuliuotas" value="šalinti"' + disabled + '></td>'
+								+ '<td><input type="button" class="redaguoti" value="redaguoti"></td>'
+								+ '<td><a href="/patiekalas?id=' + data [ i ].id  +'" class="details">daugiau</a></td>'
+									;
+								;
+								
+							
+							res_str += '</tr>';
+						}
+						
+						res_str += '</table>'
+						$( '#patiekalai' ).html ( res_str );
+						
+						$( "#naujas" ).button().on( "click", function() {
+						      $( '#id_pat' ).val(  '0' );
+						      dialog.dialog( "open" );
+						});	
+						
+						$( '.anuliuotas' ).on ( 'click', function() {
+						
+							$( this ).each ( function() {
+								
+								id = $( this ).parent( ).parent().data ( 'id' );//koks id turi buti?
+								
+								salintiPatiekalus (id);
+								dialogRemove.dialog ("open")
+
+								// keistiBusena ( id_uzsakymo, 'anuliuotas' );
+							});
+						});
+						
+						$( '.redaguoti' ).on ( 'click', function() {
+						
+							$( this ).each ( function() {
+								
+								id = $( this ).parent( ).parent().data ( 'id' );
+								
+								i_patiekalo = surastiSarasePagalId ( id, patiekalai ); 
+								
+								$( '#pav' ).val ( patiekalai [ i_patiekalo ].pav );
+								$( '#trukme_ruosimo' ).val ( patiekalai [ i_patiekalo ].trukme_ruosimo );
+								$( '#trukme_kaitinimo' ).val ( patiekalai [ i_patiekalo ].trukme_kaitinimo );
+								$( '#kaina' ).val ( patiekalai [ i_patiekalo ].kaina );
+
+								$( '#id_pat' ).val ( id );//koks cia id turi buti????
+								dialog.dialog( "open" );
+
+								// keistiBusena ( id_uzsakymo, 'ivykdytas' );
+							});
+						});
+					}
+			);		
+		}
+		
+		function salintiPatiekalus( id ) {
+		
+					params_str = 'id=' + id ;
+					//alert (params_str );
+		
+					$.ajax(
+						{
+					url: "http://localhost:8080/restfull/salintiPatiekalus?" + params_str
+			
+															
+						}
+				)
+			
+					.done(function (data) {
+			
+					//alert ( data );
+					paiimtiPatiekalus();
+			
+				});
+			
+			
+		}	
+		
+		$( '#naujas_patiekalas' ).click( function() {
+		
+			alert ( 'vykdomas ' );
+		
+			patiekalas = {
+				
+				pav: $( '#pav' ).val()
+				, trukme_ruosimo: parseInt ( $( '#trukme_ruosimo' ).val() )
+				, trukme_kaitinimo: parseInt ( $( '#trukme_kaitinimo' ).val() )
+				,kaina: parseFloat ( $( '#kaina' ).val() )
+			}
+			
+			// alert ( 'uzsakymas  ' + uzsakymas.pav + ' ' );
+			
+			params_str = 
+				"pav="  + uzsakymas.pav 
+				+ '&trukme_ruosimo=' + patiekalai.trukme_ruosimo 
+				+ '&trukme_kaitinimo=' + patiekalai.trukme_kaitinimo
+				+ '&kaina=' + patiekalai.kaina 
+				
+			alert ( "http://localhost:8080/restfull/add?" + params_str );
+				
+			$.ajax(
+				{
+					url: "http://localhost:8080/restfull/add?" + params_str
+				}
+			)
+			.done( function( data ) {
+				
+				alert ( data );
+				paiimtiPatiekalus();
+			});
+		});
+		
+		
+		function addPatiekalas() {
+		
+																
+			var valid = true;
+			allFields.removeClass( "ui-state-error" );
+		 
+			valid = valid && checkLength( pav, "Pavadinimas", 3, 256 );
+		          valid = valid && checkLength( trukme_ruosimo, "Trukme ruošimo", 1, 32 );
+		          valid = valid && checkNumber( trukme_kaitinimo, "Trukme kaitinimo", "realus" );
+		          valid = valid && checkNumber( kaina, "Kaina", "realus" );
+			id  = $( '#id_pat' ).val();
+			 issaugotiPatiekala( id );
+			 
+			return valid;
+		    }
+
+		function issaugotiPatiekala( id ) {
+		
+					params_str = 
+						'id=' + id 
+						+ '&pav=' + pav.val()				
+						+ '&trukme_ruosimo=' + trukme_ruosimo.val()
+						+ '&trukme_kaitinimo=' + trukme_kaitinimo.val()				
+						+ '&kaina=' + kaina.val()
+					;  
+				
+		
+					$.ajax(
+						{
+							url: "http://localhost:8080/restfull/saugoti-patiekala?" + params_str
+						}
+					)
+					.done( function( data ) {
+						
+						alert ( data );
+						dialog.dialog ( 'close' );
+						paiimtiPatiekalus();
+					});			
+				
+				}
+				
+			dialog = $( "#dialog-form" ).dialog({
+			
+				      autoOpen: false,
+				      height: 550,
+				      width: 350,
+				      modal: true,
+				      buttons: {
+					"Pridėti": addPatiekalas,
+					"Atšaukti": function() {
+					
+						dialog.dialog( "close" );
+					}
+				      },
+				      close: function() {
+					form[ 0 ].reset();
+					allFields.removeClass( "ui-state-error" );
+				      }
+			});
+		
+		
+		
+			dialogRemove = $( "#dialog-confirm" ).dialog({
+					autoOpen: false,
+					height: "auto",
+					width: 400,
+					modal: true,
+					buttons: {
+						"Šalinti": function() {
+								salintiPatiekalus (id);
+								$( this ).dialog( "close" );
+							},
+							Atšaukti: function() {
+								$( this ).dialog( "close" );
+								}
+						}		
+			});
+						
+		
+		form = dialog.find( 'form' );
+
+	});	
+	
+	    </script>
+</head>
+<body>
+	<!--
+	<form action=""> patiekalu pridejimas be dialogo lango (jquery)
+		Patiekalo pavadinimas<br>
+		<input type="text" id="pav" value=""><br><br>
+		Trukmė ruošimo<br>
+		<input type="text" id="trukme_ruosimo" value=""><br><br>
+		Trukmė kaitinimo<br>
+		<input type="text" id="trukme_kaitinimo" value=""><br><br>
+		Kaina<br>
+		<input type="text" id="kaina" value=""><br><br>
+		Produktų kiekis<br>
+		<input type="text" id="prod_kiekis" value=""><br><br>
+		<input type="button" id="naujas_uzsakymas" value="Užsakyti">
+	</form
+	-->
+<div id="dialog-form" title="Patiekalai">
+  <p class="validateTips">Visi laukeliai turi būti užpildyti.</p>
+ <form id= "df" action="">
+	<fieldset>
+		<label for="pav">Pavadinimas</label>
+		<input type="text" name="pav" id="pav" value="" class="text ui-widget-content ui-corner-all">
+		
+		<label for="trukme_ruosimo">Trukmė ruošimo</label>
+		<input type="text" name="trukme_ruosimo" id="trukme_ruosimo" value="" class="text ui-widget-content ui-corner-all">
+		
+		<label for="trukme_kaitinimo">Trukmė kaitinimo</label>
+		<input type="text" name="trukme_kaitinimo" id="trukme_kaitinimo" value="" class="text ui-widget-content ui-corner-all">
+		
+		<label for="kaina">Kaina</label>
+		<input type="text" name="kaina" id="kaina" value="" class="text ui-widget-content ui-corner-all">
+		
+		<!-- Allow form submission with keyboard without duplicating the dialog button -->
+		<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+	</fieldset>
+		<input type="hidden" name="id" id="id_pat" value="0">
+  </form>
+</div>
+	
+	<!-- Trynimo patvirtinimo langas -->
+	<div id="dialog-confirm" title="Ar tikrai norite ištrinti?">
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>Šie įrašai bus ištrinti, be galimybės juos atstatyti. Ar tikrai norite šalinti įrašą?</p>
+</div>
+	
+	
+	
+	<div id="patiekalai">
+	</div>
+</body>
+</html>
